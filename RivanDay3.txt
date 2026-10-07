@@ -1,0 +1,247 @@
+!CoreTAAS
+
+conf t
+ hostname CoreTAAS-M
+ ip routing
+ int fa0/9
+  no sw
+  ip add 10.100.69.122 255.255.255.252
+  end
+
+
+
+
+
+*********** STATIC ROUTES *********
+
+!Cisco
+
+Configure a static host route destined for 10.1.1.5 on R1
+
+conf t
+  ip route [destination] [mask] [next hop / exit-int]
+
+
+
+
+FORWARD TRAFFIC GOING TO R2
+conf t
+  ip route 10.1.1.2 255.255.255.255 10.1.1.2
+end
+
+
+
+RETURN TRAFFIC ON R3
+conf t
+  ip route 10.1.1.1 255.255.255.255 10.1.1.5
+end
+ping 10.1.1.1
+
+
+RETURN TRAFFIC ON R3
+conf t
+  ip route 10.1.1.1 255.255.255.255 10.1.1.5
+end
+ping 10.1.1.1
+
+
+
+
+
+*************
+
+
+GOING to R4
+conf t
+  ip route 10.1.1.8 255.255.255.252 10.1.1.5
+end
+ping 10.1.1.1
+
+
+GOING TO R1
+conf t
+  ip route 10.1.1.0 255.255.255.252 10.1.1.9
+end
+
+
+GOING TO R3
+conf t
+  ip route 10.1.1.9 255.255.255.255 10.1.1.9
+end
+
+GOING TO R2
+conf t
+  ip route 10.1.1.8 255.255.255.252 10.1.1.6
+end
+
+
+
+
+
+******** EIGRP *********
+
+
+1. Find the connected networks
+- 10.2.1.0 /24
+- 10.2.2.0 /24
+- 192.168.1.127 / 27
+- 10.1.4.4 /30
+
+
+@D1
+
+conf t
+ router eigrp 100
+  network 10.2.1.0 0.0.0.255
+  network 10.2.2.0 0.0.0.255
+  network 192.168.1.128 0.0.0.31
+  network 10.1.4.4 0.0.0.3
+end
+
+
+
+
+@D2/C2
+
+
+
+conf t
+ router eigrp 100
+  network 10.2.1.0 0.0.0.255
+  network 10.2.2.0 0.0.0.255
+  network 192.168.1.128 0.0.0.31
+  network 10.1.4.8 0.0.0.3
+end
+
+
+
+@R4
+conf t
+ router eigrp 100
+  network 10.1.4.4 0.0.0.3
+  network 10.1.4.8 0.0.0.3
+end
+
+sh ip eigrp neig
+sh ip ro eigrp
+
+
+
+
+
+-------------------- OSPF ----------------
+
+
+
+@R3
+conf t
+ router ospf 1
+  router-id 3.3.3.3
+  network 3.3.3.3 0.0.0.0 area 0
+  network 10.1.1.4 0.0.0.3 area 0
+  network 10.1.1.8 0.0.0.3 area 34
+end
+
+
+
+@R4
+conf t
+ router ospf 1
+  router-id 4.4.4.4
+  network 4.4.4.4 0.0.0.0 area 34
+  network 10.1.1.8 0.0.0.3 area 34
+end
+
+
+
+@R2
+conf t
+ router ospf 1
+  router-id 2.2.2.2
+  network 2.2.2.2 0.0.0.0 area 0
+  network 10.1.1.0 0.0.0.3 area 12
+  network 10.1.1.4 0.0.0.3 area 0
+  end
+
+
+sh ip ospf nei
+
+
+
+
+@R1
+!@R1
+conf t
+ router ospf 1
+  router-id 1.1.1.1
+  exit
+ int lo1
+  ip ospf 1 area 12
+  exit
+ int e1/0
+  ip ospf 1 area 12
+  end
+
+
+
+
+
+
+
+-------- Neighbors and Adjacency ------
+OSPF Routers
+- Router-ID
+- Authentication
+- Subnet Mask
+- Area
+
+- Hello Timer: 10
+- Dead Timer : 40
+
+
+
+
+@ GLOBE
+
+conf t
+ router bgp 3
+  bgp log-neighbor-changes
+  neighbor 32.3.2.2 remote-as 2
+  neighbor 35.3.5.5 remote-as 45
+  neighbor 209.9.9.1 remote-as 1
+  address-family ipv4
+   neighbor 32.3.2.2 activate
+   neighbor 35.3.5.5 activate
+   neighbor 209.9.9.1  activate
+   network 35.3.5.0 mask 255.255.255.0
+   network 32.3.2.0 mask 255.255.255.0
+   network 33.33.33.33 mask 255.255.255.255
+   network 209.9.9.0 mask 255.255.255.0
+   end
+
+
+~~~
+
+
+
+
+
+
+
+
+
+@R3
+
+conf t
+  ip route 192.168.1.1 255.255.255.255 209.165.200.229 
+
+
+@R2
+
+conf t
+  ip route 192.168.1.1 255.255.255.255 209.165.200.225
+
+
+@R1
+conf t
+  ip route 209.165.200.230 255.255.255.255 209.165.200.226
